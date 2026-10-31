@@ -1,0 +1,2 @@
+# 文本统一使用 LF，保证 shell 脚本可在 Docker 中执行
+* text=auto eol=lf

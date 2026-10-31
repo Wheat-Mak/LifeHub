@@ -1,0 +1,85 @@
+services:
+  mysql:
+    image: mysql:8.4.13
+    environment:
+      MYSQL_ROOT_PASSWORD: lifemate_root_dev
+      MYSQL_DATABASE: lifemate
+      MYSQL_USER: lifemate
+      MYSQL_PASSWORD: lifemate_dev
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/002-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.4.7-alpine
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-16380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  namesrv:
+    image: apache/rocketmq:5.3.2
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn64m"
+    ports:
+      - "127.0.0.1:9876:9876"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/9876"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  mq-storage-init:
+    image: apache/rocketmq:5.3.2
+    user: "0:0"
+    command: sh -c 'chown 3000:3000 /home/rocketmq/store'
+    volumes:
+      - rocketmq-data:/home/rocketmq/store
+
+  broker:
+    image: apache/rocketmq:5.3.2
+    command: sh mqbroker -n namesrv:9876 -c /etc/rocketmq/broker.conf
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    ports:
+      - "127.0.0.1:10911:10911"
+    volumes:
+      - ./mq/broker.conf:/etc/rocketmq/broker.conf:ro
+      - rocketmq-data:/home/rocketmq/store
+    depends_on:
+      namesrv:
+        condition: service_healthy
+      mq-storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/10911"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  mq-init:
+    image: apache/rocketmq:5.3.2
+    command: sh /etc/rocketmq/init-topics.sh
+    volumes:
+      - ./mq/init-topics.sh:/etc/rocketmq/init-topics.sh:ro
+    environment:
+      JAVA_OPT_EXT: "-Xms64m -Xmx128m"
+    depends_on:
+      broker:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  rocketmq-data:

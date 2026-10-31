@@ -1,0 +1,63 @@
+# 本地环境配置；保留可提交的配置示例
+.env
+.env.*
+!.env.example
+/compose.override.yaml
+/compose.override.yml
+/docker-compose.override.yaml
+/docker-compose.override.yml
+
+# 测试源码、测试工具、压测脚本和结果
+*_test.go
+/test/
+/internal/testutil/
+testdata/
+
+# Go 构建产物
+/bin/
+/build/
+/dist/
+/out/
+/server
+/prepare-seckill
+/seckill-fixture
+*.exe
+*.exe~
+*.test
+
+# 覆盖率和性能分析产物
+/coverage/
+/coverage.out
+/coverage.html
+/coverage.txt
+*.coverprofile
+*.prof
+*.pprof
+
+# 本地 Go workspace
+/go.work
+/go.work.sum
+
+# 日志、缓存和临时文件
+logs/
+*.log
+*.log.*
+tmp/
+temp/
+.cache/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+__pycache__/
+*.py[cod]
+
+# 编辑器和操作系统文件
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
